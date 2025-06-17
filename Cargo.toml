@@ -1,0 +1,9 @@
+[package]
+name = "rule1"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+smallvec = "1.15.1"
+stream_bitset = { path="stream-bitset" }
+structopt = "0.3.26"
