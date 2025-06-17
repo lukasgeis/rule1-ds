@@ -9,7 +9,10 @@ use structopt::StructOpt;
 
 use crate::{domset::DominatingSet, graph::*, rule1::Rule1};
 
-use std::{collections::HashSet, io::Write};
+use std::{
+    collections::HashMap,
+    io::Write,
+};
 
 #[derive(StructOpt)]
 struct Args {
@@ -49,26 +52,34 @@ fn main() -> std::io::Result<()> {
     let mut naive_nodes = BitSet::new(graph.len());
     let mut linear_nodes = BitSet::new(graph.len());
 
-    let mut node_markers: HashSet<Node> = HashSet::new();
+    let mut node_markers: HashMap<Node, Node> = HashMap::new();
     'outer: for u in graph.vertices() {
         if markers[u as usize].is_empty() {
             continue;
         }
 
         node_markers.clear();
+        for &m in &markers[u as usize] {
+            node_markers.insert(m, 0);
+        }
+
         for v in graph.closed_neighbors_of(u) {
             if markers[v as usize].is_empty() {
                 continue 'outer;
             }
 
             for &m in &markers[v as usize] {
-                node_markers.insert(m);
+                node_markers.entry(m).and_modify(|num| *num += 1);
             }
         }
 
-        if node_markers.len() <= 1 {
-            naive_nodes.set_bit(u);
+        for &m in &markers[u as usize] {
+            if *node_markers.get(&m).unwrap() == graph.degree_of(u) {
+                naive_nodes.set_bit(u);
+                break;
+            }
         }
+
         linear_nodes.set_bit(u);
     }
 
