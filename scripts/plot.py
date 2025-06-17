@@ -54,8 +54,6 @@ for file in os.listdir(args.datadir):
 
 data = pd.DataFrame.from_dict(data)
 
-print(data)
-
 data = data[data.rule_fixed > 0]
 data["frac_fixed"] = data["rule_fixed"] / data["n"]
 data["frac_nodes"] = data["rule_nodes_removed"] / data["n"]

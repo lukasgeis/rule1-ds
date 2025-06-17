@@ -9,10 +9,7 @@ use structopt::StructOpt;
 
 use crate::{domset::DominatingSet, graph::*, rule1::Rule1};
 
-use std::{
-    collections::HashMap,
-    io::Write,
-};
+use std::{collections::HashMap, io::Write};
 
 #[derive(StructOpt)]
 struct Args {
@@ -30,7 +27,7 @@ fn main() -> std::io::Result<()> {
     // Read graph
     let mut graph = Graph::try_read_pace(std::io::stdin().lock())?;
     let mut domset = DominatingSet::new();
-    
+
     // Clone graph for later
     let org_graph = graph.clone();
 
@@ -154,9 +151,12 @@ fn main() -> std::io::Result<()> {
 
     // Print reduced graph and domset
     if !args.deny_graph_output {
-        // Add gadgets back in 
+        // Add gadgets back in
         for u in domset.iter() {
-            let nb = org_graph.neighbors_of(u).find(|&v| linear_nodes.get_bit(v)).unwrap();
+            let nb = org_graph
+                .neighbors_of(u)
+                .find(|&v| linear_nodes.get_bit(v))
+                .unwrap();
             graph.add_edge(u, nb);
         }
 
