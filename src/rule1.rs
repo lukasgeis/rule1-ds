@@ -372,7 +372,7 @@ impl Rule1 {
                 && parent[u as usize] != NOT_SET
                 && graph
                     .neighbors_of(u)
-                    .filter(|&v| parent[v as usize] != NOT_SET)
+                    .filter(|&v| parent[v as usize] == NOT_SET)
                     .count()
                     <= 1
             {
@@ -527,7 +527,7 @@ impl Rule1 {
                 && parent[u as usize] != NOT_SET
                 && graph
                     .neighbors_of(u)
-                    .filter(|&v| parent[v as usize] != NOT_SET)
+                    .filter(|&v| parent[v as usize] == NOT_SET)
                     .count()
                     <= 1
             {
