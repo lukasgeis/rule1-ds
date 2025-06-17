@@ -63,7 +63,7 @@ fn main() -> std::io::Result<()> {
             node_markers.insert(m, 0);
         }
 
-        for v in graph.closed_neighbors_of(u) {
+        for v in graph.neighbors_of(u) {
             if markers[v as usize].is_empty() {
                 continue 'outer;
             }
