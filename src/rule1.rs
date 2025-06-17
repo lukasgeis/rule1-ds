@@ -70,14 +70,25 @@ impl Rule1 {
 
             if type3 {
                 sol.add_node(u);
-                for v in type2_nodes.iter_set_bits() {
-                    graph.remove_edges_at_node(v);
-                    redundant.set_bit(v);
-                }
+                redundant.set_bits(type2_nodes.iter_set_bits());
+            }
+        }
 
-                // Add gadget
-                let first_bit = type2_nodes.get_first_set_index_atleast(0).unwrap();
-                graph.add_edge(u, first_bit);
+        marked.clear_all();
+        for u in sol.iter() {
+            let mut first = true;
+            let nbs: Vec<Node> = graph.neighbors_of(u).collect();
+
+            for v in nbs {
+                if marked.set_bit(v) || !redundant.get_bit(v) {
+                    continue;
+                }
+                graph.remove_edges_at_node(v);
+
+                if first {
+                    graph.add_edge(u, v);
+                    first = false;
+                }
             }
         }
 
@@ -227,10 +238,13 @@ impl Rule1 {
 
         for u in redundant.iter_set_bits() {
             graph.remove_edges_at_node(u);
-        }
 
-        if let Some(first_bit) = redundant.get_first_set_index_atleast(0) {
-            graph.add_edge(parent[first_bit as usize], first_bit);
+            // Insert gadget back in
+            let dom = parent[u as usize];
+            if parent[dom as usize] != NOT_SET {
+                graph.add_edge(u, dom);
+                parent[dom as usize] = NOT_SET;
+            }
         }
 
         redundant
@@ -382,10 +396,13 @@ impl Rule1 {
 
         for u in redundant.iter_set_bits() {
             graph.remove_edges_at_node(u);
-        }
 
-        if let Some(first_bit) = redundant.get_first_set_index_atleast(0) {
-            graph.add_edge(parent[first_bit as usize], first_bit);
+            // Insert gadget back in
+            let dom = parent[u as usize];
+            if parent[dom as usize] != NOT_SET {
+                graph.add_edge(u, dom);
+                parent[dom as usize] = NOT_SET;
+            }
         }
 
         redundant
@@ -537,13 +554,21 @@ impl Rule1 {
 
         for u in redundant.iter_set_bits() {
             graph.remove_edges_at_node(u);
+
+            // Insert gadget back in
+            let dom = parent[u as usize];
+            if parent[dom as usize] != NOT_SET {
+                graph.add_edge(u, dom);
+                parent[dom as usize] = NOT_SET;
+                parent[u as usize] = NOT_SET;
+            }
+        }
+
+        for u in sol.iter() {
+            parent[u as usize] = u;
         }
 
         graph.remove_edges_between(|u| parent[u as usize] != NOT_SET);
-
-        if let Some(first_bit) = redundant.get_first_set_index_atleast(0) {
-            graph.add_edge(parent[first_bit as usize], first_bit);
-        }
 
         redundant
     }
