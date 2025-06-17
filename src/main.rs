@@ -154,6 +154,12 @@ fn main() -> std::io::Result<()> {
 
     // Print reduced graph and domset
     if !args.deny_graph_output {
+        // Add gadgets back in 
+        for u in domset.iter() {
+            let nb = org_graph.neighbors_of(u).find(|&v| linear_nodes.get_bit(v)).unwrap();
+            graph.add_edge(u, nb);
+        }
+
         let mut stdout = std::io::stdout();
         writeln!(
             stdout,
