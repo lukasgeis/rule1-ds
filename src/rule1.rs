@@ -60,7 +60,7 @@ impl Rule1 {
                 .unwrap();
             if max_neighbor != u {
                 inv_mappings[max_neighbor as usize].push(u);
-            } else if graph.degree_of(u) == 1 {
+            } else if graph.degree_of(u) == 0 {
                 sol.add_node(u);
             }
         }
