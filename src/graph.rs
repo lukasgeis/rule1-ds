@@ -8,6 +8,7 @@ pub type Edge = (Node, Node);
 pub type BitSet = BitSetImpl<Node>;
 
 /// Minimal Graph-Representation using AdjacencyLists
+#[derive(Clone)]
 pub struct Graph {
     nbs: Vec<Vec<Node>>,
     m: usize,
@@ -96,5 +97,12 @@ impl Graph {
         }
 
         self.m -= m / 2;
+    }
+
+    /// Adds an edge to the graph (without checking if it already exists)
+    pub fn add_edge(&mut self, u: Node, v: Node) {
+        self.nbs[u as usize].push(v);
+        self.nbs[v as usize].push(u);
+        self.m += 1;
     }
 }

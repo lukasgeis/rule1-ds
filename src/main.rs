@@ -30,6 +30,9 @@ fn main() -> std::io::Result<()> {
     // Read graph
     let mut graph = Graph::try_read_pace(std::io::stdin().lock())?;
     let mut domset = DominatingSet::new();
+    
+    // Clone graph for later
+    let org_graph = graph.clone();
 
     writeln!(
         stderr,
@@ -54,7 +57,8 @@ fn main() -> std::io::Result<()> {
 
     let mut node_markers: HashMap<Node, Node> = HashMap::new();
     'outer: for u in graph.vertices() {
-        if markers[u as usize].is_empty() {
+        // Ignore DomSet-Nodes itself for deletion
+        if markers[u as usize].is_empty() || markers[u as usize].contains(&u) {
             continue;
         }
 
@@ -93,8 +97,8 @@ fn main() -> std::io::Result<()> {
         stderr,
         "{:20} n -= {:7}, m -= {:7}, |D| += {:7}",
         "Rule1-Naive",
-        naive_nodes.cardinality(),
-        m - graph.num_edges(),
+        naive_nodes.cardinality() - 1,
+        m - graph.num_edges() - 1,
         domset.len()
     )?;
 
@@ -106,8 +110,8 @@ fn main() -> std::io::Result<()> {
         stderr,
         "{:20} n -= {:7}, m -= {:7}, |D| += {:7}",
         "Rule1-Linear",
-        linear_nodes.cardinality(),
-        m - graph.num_edges(),
+        linear_nodes.cardinality() - 1,
+        m - graph.num_edges() - 1,
         domset.len()
     )?;
 
@@ -132,8 +136,8 @@ fn main() -> std::io::Result<()> {
         stderr,
         "{:20} n -= {:7}, m -= {:7}, |D| += {:7}",
         "Rule1-Plus",
-        linear_nodes.cardinality(),
-        m - graph.num_edges(),
+        linear_nodes.cardinality() - 1,
+        m - graph.num_edges() - 1,
         domset.len()
     )?;
 
@@ -143,8 +147,8 @@ fn main() -> std::io::Result<()> {
         stderr,
         "{:20} n -= {:7}, m -= {:7}, |D| += {:7}",
         "Rule1-Extra",
-        linear_nodes.cardinality(),
-        m - graph.num_edges(),
+        linear_nodes.cardinality() - 1,
+        m - graph.num_edges() - 1,
         domset.len()
     )?;
 
