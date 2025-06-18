@@ -20,14 +20,13 @@ See the original formuation of this reduction-rule in \[OriginalRule1\] and \[Li
   year    = {2004}
 }
 
-@article{LinearRule1,
-  author = {Lukas Geis and
-            Alexander Leonhardt and
-            Johannes Meintrup and
-            Ulrich Meyer and
-            Manuel Penschuck},
-  title  = {Simpler, Better, Faster, Stronger: Revisiting a Successfull Reduction Rule for Dominating Set},
-  url    = {TBD},
-  year   = {2025}
+@misc{LinearRule1,
+  title   = {Simpler, Better, Faster, Stronger: Revisiting a Successful Reduction Rule for Dominating Set}, 
+  author  = {Lukas Geis and Alexander Leonhardt and Johannes Meintrup and Ulrich Meyer and Manuel Penschuck},
+  year    = {2025},
+  eprint  = {2506.14564},
+  url     = {https://arxiv.org/abs/2506.14564}, 
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.DS},
 }
 ```
