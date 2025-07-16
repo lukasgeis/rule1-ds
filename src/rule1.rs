@@ -291,7 +291,7 @@ impl Rule1 {
 
         for u in cov.iter_set_bits() {
             if !self.processed.get_bit(u)
-                && graph.neighbors_of(u).filter(|&v| cov.get_bit(v)).count() <= 1
+                && graph.neighbors_of(u).filter(|&v| !cov.get_bit(v)).count() <= 1
             {
                 self.processed.set_bit(u);
             }
