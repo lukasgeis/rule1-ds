@@ -5,6 +5,8 @@ use stream_bitset::bitset::BitSetImpl;
 pub type Node = u32;
 pub type Edge = (Node, Node);
 
+pub type NumNodes = Node;
+
 pub type BitSet = BitSetImpl<Node>;
 
 /// Minimal Graph-Representation using AdjacencyLists
@@ -32,8 +34,8 @@ impl Graph {
     }
 
     /// Returns the number of nodes in the graph
-    pub fn len(&self) -> Node {
-        self.nbs.len() as Node
+    pub fn len(&self) -> NumNodes {
+        self.nbs.len() as NumNodes
     }
 
     /// Returns the number of edges in the graph
@@ -46,9 +48,20 @@ impl Graph {
         0..self.len()
     }
 
+    /// Provides a range over all nodes in the graph that have at least one incident edge
+    pub fn vertices_with_neighbors(&self) -> impl Iterator<Item = Node> {
+        self.vertices()
+            .filter(|&u| !self.nbs[u as usize].is_empty())
+    }
+
     /// Returns the degree of a node
-    pub fn degree_of(&self, u: Node) -> Node {
-        self.nbs[u as usize].len() as Node
+    pub fn degree_of(&self, u: Node) -> NumNodes {
+        self.nbs[u as usize].len() as NumNodes
+    }
+
+    /// Returns the maximum degree in the graph
+    pub fn max_degree(&self) -> NumNodes {
+        self.vertices().map(|u| self.degree_of(u)).max().unwrap()
     }
 
     /// Provides an iterator over all neighbors of a node
@@ -56,17 +69,15 @@ impl Graph {
         self.nbs[u as usize].iter().copied()
     }
 
+    /// Provides the ith neighbor of u.
+    /// Panics if there is no such neighbor.
+    pub fn ith_neighbor(&self, u: Node, i: NumNodes) -> Node {
+        self.nbs[u as usize][i as usize]
+    }
+
     /// Provides an iterator over all neighbors of a node and the node itself
     pub fn closed_neighbors_of(&self, u: Node) -> impl Iterator<Item = Node> {
         std::iter::once(u).chain(self.neighbors_of(u))
-    }
-
-    /// Returns an iterator over all edges in the graph
-    pub fn edges(&self) -> impl Iterator<Item = Edge> {
-        self.vertices().flat_map(|u| {
-            self.neighbors_of(u)
-                .filter_map(move |v| (u < v).then_some((u, v)))
-        })
     }
 
     /// Removes all edges at a given node
@@ -80,16 +91,36 @@ impl Graph {
         }
     }
 
-    /// Removes all edges (u, v) where u and v both return true for a closure f
-    pub fn remove_edges_between<F: Fn(Node) -> bool>(&mut self, f: F) {
-        let mut m = 0;
+    /// Removes all edges at a set of nodes
+    pub fn remove_edges_at_nodes(&mut self, nodes: &BitSet) {
+        let mut removed_half_edges = 0;
+
         for u in self.vertices() {
-            if !f(u) {
+            let nbs = &mut self.nbs[u as usize];
+            if nodes.get_bit(u) {
+                removed_half_edges += nbs.len();
+                nbs.clear();
                 continue;
             }
+
+            for i in (0..nbs.len()).rev() {
+                if nodes.get_bit(nbs[i]) {
+                    nbs.swap_remove(i);
+                    removed_half_edges += 1;
+                }
+            }
+        }
+
+        self.m -= removed_half_edges / 2;
+    }
+
+    /// Removes all edges (u, v) where u and v both return true for a closure f
+    pub fn remove_edges_between(&mut self, nodes: &BitSet) {
+        let mut m = 0;
+        for u in nodes.iter_set_bits() {
             let nbs = &mut self.nbs[u as usize];
             for i in (0..nbs.len()).rev() {
-                if f(nbs[i]) {
+                if nodes.get_bit(nbs[i]) {
                     nbs.swap_remove(i);
                     m += 1;
                 }
@@ -97,12 +128,5 @@ impl Graph {
         }
 
         self.m -= m / 2;
-    }
-
-    /// Adds an edge to the graph (without checking if it already exists)
-    pub fn add_edge(&mut self, u: Node, v: Node) {
-        self.nbs[u as usize].push(v);
-        self.nbs[v as usize].push(u);
-        self.m += 1;
     }
 }
