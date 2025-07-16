@@ -282,7 +282,7 @@ fn main() -> std::io::Result<()> {
             before_edges - after_edges,
             after_in_domset - before_in_domset,
             after_covered - before_covered,
-            extra_time + rule_time + init_time,
+            extra_time,
             extra_ds_c.len(),
             greedy_time,
         )?;
