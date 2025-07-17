@@ -270,6 +270,11 @@ fn main() -> std::io::Result<()> {
         let after_in_domset = extra_ds.len();
         let after_covered = extra_cov.cardinality();
 
+        // No Change happened => abort
+        if before_in_domset == after_in_domset {
+            break;
+        }
+
         let mut extra_ds_c = extra_ds.clone();
         let greedy_time = time!({
             Greedy::compute(&extra_graph, &mut extra_ds_c, &extra_cov);
@@ -286,11 +291,6 @@ fn main() -> std::io::Result<()> {
             extra_ds_c.len(),
             greedy_time,
         )?;
-
-        // No Change happened => abort
-        if before_in_domset == after_in_domset {
-            break;
-        }
     }
 
     Ok(())
