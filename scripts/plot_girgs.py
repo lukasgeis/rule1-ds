@@ -280,21 +280,20 @@ def plot_node_distr(data, y, y_label, y_scale, name):
 
     plot = sns.scatterplot(
         data[(data.rule_name != "Naive") & (data.rule_name != "Extra")],
-        x="n",
+        x="m",
         y=y,
         hue="rule_name",
         hue_order=["Linear", "Plus"],
         palette="colorblind",
         style="rule_name",
         markers=["o", "v"],
-        alpha=0.7,
     )
 
     plt.xscale("log")
     plt.yscale(y_scale)
 
     plot.set(
-        xlabel=r"\textsc{Input: Number of Nodes}",
+        xlabel=r"\textsc{Input: Number of Edges}",
         ylabel=y_label,
     )
 
@@ -310,21 +309,21 @@ plot_node_distr(
     data,
     "su_n",
     r"\textsc{Increase in Removed Nodes to Naive}",
-    "log_below_10",
+    "linear",
     "nodes",
 )
 plot_node_distr(
     data,
     "su_D",
     r"\textsc{Increase in Dominating Nodes to Naive}",
-    "log_below_10",
+    "linear",
     "domset",
 )
 plot_node_distr(
     data,
     "su_covered",
     r"\textsc{Increase in Covered Nodes to Naive}",
-    "log",
+    "linear",
     "covered",
 )
 
@@ -345,11 +344,10 @@ plot = sns.scatterplot(
     palette="colorblind",
     style="rule_name",
     markers=["o", "v", "X"],
-    alpha=0.7,
 )
 
 plt.xscale("log")
-plt.yscale("log")
+plt.yscale("linear")
 
 plot.set(
     xlabel=r"\textsc{Input: Number of Edges}",
@@ -373,21 +371,20 @@ plt.rcParams["figure.figsize"] = 7, 4
 
 plot = sns.scatterplot(
     data[data.rule_name != "Naive"],
-    x="n",
+    x="m",
     y="su_time",
     hue="rule_name",
     hue_order=["Linear", "Plus", "Extra"],
     palette="colorblind",
     style="rule_name",
     markers=["o", "v", "X"],
-    alpha=0.7,
 )
 
 plt.xscale("log")
-plt.yscale("log")
+plt.yscale("linear")
 
 plot.set(
-    xlabel=r"\textsc{Input: Number of Nodes}",
+    xlabel=r"\textsc{Input: Number of Edges}",
     ylabel=r"\textsc{Speedup to Naive}",
 )
 
