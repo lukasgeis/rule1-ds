@@ -198,136 +198,6 @@ for rule in ["Linear", "Plus", "Extra"]:
     )
 
 
-class LogBelowCompressAboveScale(mscale.ScaleBase):
-    name = "log_below_10"
-
-    def __init__(self, axis, **kwargs):
-        super().__init__(axis)
-        self.threshold = 10
-        self.compression = 0.2
-
-    def get_transform(self):
-        return self.LogBelowCompressAboveTransform(self.threshold, self.compression)
-
-    def set_default_locators_and_formatters(self, axis):
-        axis.set_major_locator(LogLocator(base=10.0))
-        axis.set_major_formatter(ScalarFormatter())
-
-    def limit_range_for_scale(self, vmin, vmax, minpos):
-        return max(vmin, 1e-3), vmax
-
-    class LogBelowCompressAboveTransform(mtransforms.Transform):
-        input_dims = 1
-        output_dims = 1
-        is_separable = True
-
-        def __init__(self, threshold, compression):
-            super().__init__()
-            self.threshold = threshold
-            self.compression = compression
-
-        def transform_non_affine(self, y):
-            y = np.asarray(y)
-            with np.errstate(divide="ignore"):
-                return np.where(
-                    y <= self.threshold,
-                    np.log10(y),
-                    np.log10(self.threshold)
-                    + np.log10(y / self.threshold) * self.compression,
-                )
-
-        def inverted(self):
-            return LogBelowCompressAboveScale.InvertedLogBelowCompressAboveTransform(
-                self.threshold, self.compression
-            )
-
-    class InvertedLogBelowCompressAboveTransform(mtransforms.Transform):
-        input_dims = 1
-        output_dims = 1
-        is_separable = True
-
-        def __init__(self, threshold, compression):
-            super().__init__()
-            self.threshold = threshold
-            self.compression = compression
-
-        def transform_non_affine(self, y):
-            y = np.asarray(y)
-            return np.where(
-                y <= np.log10(self.threshold),
-                10**y,
-                self.threshold
-                * 10 ** ((y - np.log10(self.threshold)) / self.compression),
-            )
-
-        def inverted(self):
-            return LogBelowCompressAboveScale.LogBelowCompressAboveTransform(
-                self.threshold, self.compression
-            )
-
-
-# Register the custom scale
-mscale.register_scale(LogBelowCompressAboveScale)
-
-
-def plot_node_distr(data, y, y_label, y_scale, name):
-    plt.clf()
-
-    sns.set_theme(style="whitegrid")
-    sns.set_palette("colorblind")
-    plt.rcParams["text.usetex"] = True
-    plt.rcParams["figure.figsize"] = 7, 4
-
-    plot = sns.scatterplot(
-        data[(data.rule_name != "Naive") & (data.rule_name != "Extra")],
-        x="m",
-        y=y,
-        hue="rule_name",
-        hue_order=["Linear", "Plus"],
-        palette="colorblind",
-        style="rule_name",
-        markers=["o", "v"],
-    )
-
-    plt.xscale("log")
-    plt.yscale(y_scale)
-
-    plot.set(
-        xlabel=r"\textsc{Input: Number of Edges}",
-        ylabel=y_label,
-    )
-
-    handles, labels = plot.get_legend_handles_labels()
-    labels = [r"\textsc{Linear}", r"\textsc{Plus}"]
-
-    plt.legend(handles[::-1], labels[::-1], title=r"\textsc{Rule1}")
-
-    plt.savefig(f"{args.outpath}/{name}.pdf", format="pdf", bbox_inches="tight")
-
-
-plot_node_distr(
-    data,
-    "su_n",
-    r"\textsc{Increase in Removed Nodes to Naive}",
-    "linear",
-    "nodes",
-)
-plot_node_distr(
-    data,
-    "su_D",
-    r"\textsc{Increase in Dominating Nodes to Naive}",
-    "linear",
-    "domset",
-)
-plot_node_distr(
-    data,
-    "su_covered",
-    r"\textsc{Increase in Covered Nodes to Naive}",
-    "linear",
-    "covered",
-)
-
-
 plt.clf()
 
 sns.set_theme(style="whitegrid")
@@ -335,39 +205,8 @@ sns.set_palette("colorblind")
 plt.rcParams["text.usetex"] = True
 plt.rcParams["figure.figsize"] = 7, 4
 
-plot = sns.scatterplot(
-    data[data.rule_name != "Naive"],
-    x="m",
-    y="su_m",
-    hue="rule_name",
-    hue_order=["Linear", "Plus", "Extra"],
-    palette="colorblind",
-    style="rule_name",
-    markers=["o", "v", "X"],
-)
-
-plt.xscale("log")
-plt.yscale("linear")
-
-plot.set(
-    xlabel=r"\textsc{Input: Number of Edges}",
-    ylabel=r"\textsc{Increase in Removed Edges to Naive}",
-)
-
-handles, labels = plot.get_legend_handles_labels()
-labels = [r"\textsc{Linear}", r"\textsc{Plus}", r"\textsc{Extra}"]
-
-plt.legend(handles[::-1], labels[::-1], title=r"\textsc{Rule1}")
-
-plt.savefig(f"{args.outpath}/edges.pdf", format="pdf", bbox_inches="tight")
-
-
-plt.clf()
-
-sns.set_theme(style="whitegrid")
-sns.set_palette("colorblind")
-plt.rcParams["text.usetex"] = True
-plt.rcParams["figure.figsize"] = 7, 4
+sns_palette = sns.color_palette("colorblind")
+sns_palette = [sns_palette[0], sns_palette[1], sns_palette[4]]
 
 plot = sns.scatterplot(
     data[data.rule_name != "Naive"],
@@ -375,7 +214,7 @@ plot = sns.scatterplot(
     y="su_time",
     hue="rule_name",
     hue_order=["Linear", "Plus", "Extra"],
-    palette="colorblind",
+    palette=sns_palette,
     style="rule_name",
     markers=["o", "v", "X"],
 )
@@ -393,4 +232,4 @@ labels = [r"\textsc{Linear}", r"\textsc{Plus}", r"\textsc{Extra}"]
 
 plt.legend(handles[::-1], labels[::-1], title=r"\textsc{Rule1}")
 
-plt.savefig(f"{args.outpath}/time.pdf", format="pdf", bbox_inches="tight")
+plt.savefig(f"{args.outpath}/time_girgs.pdf", format="pdf", bbox_inches="tight")
