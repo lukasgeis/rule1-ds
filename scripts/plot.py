@@ -115,6 +115,7 @@ data = {
     # Speedups to Singletons
     "st_D": [],
     "st_t": [],
+    "st_T": []
 }
 
 
@@ -163,6 +164,7 @@ for file in os.listdir(args.datadir):
 
         data["st_D"].append(empty["greedy_domset"] / rule["greedy_domset"])
         data["st_t"].append(empty["greedy_time"] / rule["greedy_time"])
+        data["st_T"].append(empty["greedy_time"] / (rule["time"] + rule["greedy_time"]))
 
 
 data = pd.DataFrame.from_dict(data)
@@ -194,6 +196,8 @@ for rule in ["Linear", "Plus", "Extra"]:
         data[data.rule_name == rule]["st_D"].mean(),
         "\n- GreedyTime[Empty]: ",
         data[data.rule_name == rule]["st_t"].mean(),
+        "\n- Time[Empty]: ",
+        data[data.rule_name == rule]["st_T"].mean(),
         "\n",
     )
 
