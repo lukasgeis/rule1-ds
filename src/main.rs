@@ -1,19 +1,25 @@
 mod domset;
 mod graph;
-mod greedy;
 mod io;
+mod iter_greedy;
 mod marker;
 mod radix;
 mod rule1;
 
+use rand::SeedableRng;
+use rand_pcg::Pcg64Mcg;
+
 use crate::{
     domset::DominatingSet,
     graph::*,
-    greedy::Greedy,
+    iter_greedy::run_greedy,
     rule1::{Rule1, Rule1Naive},
 };
 
-use std::{io::Write, time::Instant};
+use std::{
+    io::{Read, Write},
+    time::Instant,
+};
 
 macro_rules! time {
     ($code:block) => {
@@ -45,10 +51,17 @@ fn report(
 fn main() -> std::io::Result<()> {
     let mut stderr = std::io::stderr();
 
+    let greedy_iter = 10u128;
+    let mut rng = Pcg64Mcg::seed_from_u64(3);
+
     // Read Graph
 
+    // Load into buffer to prevent external factors in measurement
+    let mut buffer = vec![];
+    std::io::stdin().lock().read_to_end(&mut buffer)?;
+
     let timer = Instant::now();
-    let org_graph = Graph::try_read_pace(std::io::stdin().lock())?;
+    let org_graph = Graph::try_read_pace(std::io::Cursor::new(buffer))?;
     let read_time = timer.elapsed().as_nanos();
 
     writeln!(
@@ -77,11 +90,8 @@ fn main() -> std::io::Result<()> {
 
     // Run Greedy without Reduction
 
-    let mut greedy_ds = domset_st.clone();
-
-    let greedy_time = time!({
-        Greedy::compute(&graph, &mut greedy_ds, &covered_st);
-    });
+    let (greedy_ds, greedy_time) =
+        run_greedy(&graph, &mut rng, &domset_st, &covered_st, greedy_iter);
 
     assert!(greedy_ds.is_valid(&org_graph));
 
@@ -106,31 +116,35 @@ fn main() -> std::io::Result<()> {
     let before_in_domset = naive_ds.len();
     let before_covered = naive_cov.cardinality();
 
+    let finished_in_time;
+
     let naive_time = time!({
-        Rule1Naive::apply(&mut graph, &mut naive_ds, &mut naive_cov);
+        finished_in_time = Rule1Naive::apply(&mut graph, &mut naive_ds, &mut naive_cov);
     });
 
-    let after_nodes = graph.vertices_with_neighbors().count();
-    let after_edges = graph.num_edges();
-    let after_in_domset = naive_ds.len();
-    let after_covered = naive_cov.cardinality();
+    if finished_in_time {
+        let after_nodes = graph.vertices_with_neighbors().count();
+        let after_edges = graph.num_edges();
+        let after_in_domset = naive_ds.len();
+        let after_covered = naive_cov.cardinality();
 
-    let greedy_time = time!({
-        Greedy::compute(&graph, &mut naive_ds, &naive_cov);
-    });
+        let (greedy_ds, greedy_time) =
+            run_greedy(&graph, &mut rng, &naive_ds, &naive_cov, greedy_iter);
+        assert!(greedy_ds.is_valid(&org_graph));
 
-    assert!(naive_ds.is_valid(&org_graph));
-
-    report(
-        "Naive",
-        before_nodes - after_nodes,
-        before_edges - after_edges,
-        after_in_domset - before_in_domset,
-        after_covered - before_covered,
-        naive_time,
-        naive_ds.len(),
-        greedy_time,
-    )?;
+        report(
+            "Naive",
+            before_nodes - after_nodes,
+            before_edges - after_edges,
+            after_in_domset - before_in_domset,
+            after_covered - before_covered,
+            naive_time,
+            greedy_ds.len(),
+            greedy_time,
+        )?;
+    } else {
+        writeln!(stderr, "Naive did not finish in time!")?;
+    }
 
     // Initialize Rule1 Datastructures
 
@@ -157,7 +171,7 @@ fn main() -> std::io::Result<()> {
     // Apply Linear-Removal
 
     let mut linear_graph = graph.clone();
-    let mut linear_ds = ds.clone();
+    let linear_ds = ds.clone();
     let linear_cov = cov.clone();
 
     let linear_time = time!({
@@ -169,11 +183,14 @@ fn main() -> std::io::Result<()> {
     let after_in_domset = linear_ds.len();
     let after_covered = linear_cov.cardinality();
 
-    let greedy_time = time!({
-        Greedy::compute(&linear_graph, &mut linear_ds, &linear_cov);
-    });
-
-    assert!(linear_ds.is_valid(&org_graph));
+    let (greedy_ds, greedy_time) = run_greedy(
+        &linear_graph,
+        &mut rng,
+        &linear_ds,
+        &linear_cov,
+        greedy_iter,
+    );
+    assert!(greedy_ds.is_valid(&org_graph));
 
     report(
         "Linear",
@@ -182,7 +199,7 @@ fn main() -> std::io::Result<()> {
         after_in_domset - before_in_domset,
         after_covered - before_covered,
         linear_time + rule_time + init_time,
-        linear_ds.len(),
+        greedy_ds.len(),
         greedy_time,
     )?;
 
@@ -201,11 +218,9 @@ fn main() -> std::io::Result<()> {
     let after_in_domset = plus_ds.len();
     let after_covered = plus_cov.cardinality();
 
-    let greedy_time = time!({
-        Greedy::compute(&plus_graph, &mut plus_ds, &plus_cov);
-    });
-
-    assert!(plus_ds.is_valid(&org_graph));
+    let (greedy_ds, greedy_time) =
+        run_greedy(&plus_graph, &mut rng, &plus_ds, &plus_cov, greedy_iter);
+    assert!(greedy_ds.is_valid(&org_graph));
 
     report(
         "Plus",
@@ -214,7 +229,7 @@ fn main() -> std::io::Result<()> {
         after_in_domset - before_in_domset,
         after_covered - before_covered,
         plus_time + rule_time + init_time,
-        plus_ds.len(),
+        greedy_ds.len(),
         greedy_time,
     )?;
 
@@ -233,13 +248,9 @@ fn main() -> std::io::Result<()> {
     let after_in_domset = extra_ds.len();
     let after_covered = extra_cov.cardinality();
 
-    // Clone to keep using extra_ds afterwards
-    let mut extra_ds_c = extra_ds.clone();
-    let greedy_time = time!({
-        Greedy::compute(&extra_graph, &mut extra_ds_c, &extra_cov);
-    });
-
-    assert!(extra_ds_c.is_valid(&org_graph));
+    let (greedy_ds, greedy_time) =
+        run_greedy(&extra_graph, &mut rng, &extra_ds, &extra_cov, greedy_iter);
+    assert!(greedy_ds.is_valid(&org_graph));
 
     report(
         "Extra[1]",
@@ -248,7 +259,7 @@ fn main() -> std::io::Result<()> {
         after_in_domset - before_in_domset,
         after_covered - before_covered,
         extra_time + rule_time + init_time,
-        extra_ds_c.len(),
+        greedy_ds.len(),
         greedy_time,
     )?;
 
@@ -275,11 +286,9 @@ fn main() -> std::io::Result<()> {
             break;
         }
 
-        let mut extra_ds_c = extra_ds.clone();
-        let greedy_time = time!({
-            Greedy::compute(&extra_graph, &mut extra_ds_c, &extra_cov);
-        });
-        assert!(extra_ds_c.is_valid(&org_graph));
+        let (greedy_ds, greedy_time) =
+            run_greedy(&extra_graph, &mut rng, &extra_ds, &extra_cov, greedy_iter);
+        assert!(greedy_ds.is_valid(&org_graph));
 
         report(
             format!("Extra[{i}]").as_str(),
@@ -288,7 +297,7 @@ fn main() -> std::io::Result<()> {
             after_in_domset - before_in_domset,
             after_covered - before_covered,
             extra_time,
-            extra_ds_c.len(),
+            greedy_ds.len(),
             greedy_time,
         )?;
     }

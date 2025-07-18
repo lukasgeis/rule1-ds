@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use smallvec::SmallVec;
 
 use crate::{domset::DominatingSet, graph::*, marker::NodeMarker};
@@ -29,7 +31,9 @@ const NOT_SET: Node = Node::MAX;
 pub struct Rule1Naive;
 
 impl Rule1Naive {
-    pub fn apply(graph: &mut Graph, sol: &mut DominatingSet, cov: &mut BitSet) {
+    pub fn apply(graph: &mut Graph, sol: &mut DominatingSet, cov: &mut BitSet) -> bool {
+        let timer = Instant::now();
+
         let mut marked = BitSet::new(graph.len());
         let mut type23 = BitSet::new(graph.len());
         let mut redundant = BitSet::new(graph.len());
@@ -39,6 +43,11 @@ impl Rule1Naive {
                 // We assume singletons to be fixed beforehand
                 debug_assert!(cov.get_bit(u));
                 continue;
+            }
+
+            // Stop if run for longer than an hour
+            if timer.elapsed().as_secs() >= 3600 {
+                return false;
             }
 
             marked.clear_all();
@@ -76,6 +85,8 @@ impl Rule1Naive {
         }
 
         graph.remove_edges_at_nodes(&redundant);
+
+        true
     }
 }
 
