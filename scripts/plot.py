@@ -129,6 +129,12 @@ extra_stats = {
     "num_iters_faster_than_empty": [],
 }
 
+no_naive_times = {
+    "Linear": [],
+    "Plus": [],
+    "Extra": []
+}
+
 for file in os.listdir(args.datadir):
     out = parse_file(f"{args.datadir}/{file}")
 
@@ -137,6 +143,11 @@ for file in os.listdir(args.datadir):
         rule not in out["rules"]
         for rule in ["Singletons", "Naive", "Linear", "Plus", "Extra"]
     ):
+        # Check if only Naive was not run 
+        if all(rule in out["rules"] for rule in ["Linear", "Plus", "Extra"]):
+            for rule in ["Linear", "Plus", "Extra"]:
+                no_naive_times[rule].append(out["rules"][rule]["time"])
+
         continue
 
     empty = out["rules"]["Singletons"]
@@ -256,7 +267,6 @@ data["frac_covered"] = data["rule_covered"] / data["n"]
 extra_data = data[data.rule_name == "Extra"]
 data = data[data.iter == 1]
 
-
 def print_stat(data, rule, stat, label):
     print(
         "- {} (m > 1e4): {}\n- {} (m > 1e6): {}".format(
@@ -284,6 +294,22 @@ for rule in ["Linear", "Plus", "Extra"]:
     print()
 
 
+no_naive_times = pd.DataFrame.from_dict(no_naive_times)
+print(
+    "In ",
+    len(no_naive_times),
+    " Instances, Naive did not finish in 1 hour, but"
+)
+for rule in ["Linear", "Plus", "Extra"]:
+    print(
+        "- ",
+        rule,
+        "finished on average in ",
+        no_naive_times[rule].mean() / 1000000000,
+        " seconds!"
+    )
+print()
+
 extra_stats = pd.DataFrame.from_dict(extra_stats)
 print(
     "Extra-Stats",
@@ -296,6 +322,8 @@ print(
     "\n- Average Number of Iterations until Empty was faster (m > 1e6): ",
     extra_stats[extra_stats.m > 1000000]["num_iters_faster_than_empty"].mean(),
 )
+
+
 
 sns_palette = sns.color_palette("colorblind")
 sns_palette = [sns_palette[0], sns_palette[1], sns_palette[4]]
@@ -375,7 +403,7 @@ plot_distr(
 plot_distr(
     data,
     "st_tD",
-    r"\textsc{GreedyBefore[Rule1] / GreedyAfter[Rule1]}",
+    r"\textsc{GreedyBefore[Rule1] - GreedyAfter[Rule1]}",
     True,
     "empty",
 )
