@@ -114,12 +114,19 @@ data = {
     "su_covered": [],
     "su_time": [],
     "su_gD": [],
+    "su_gtD": [],
     "su_gt": [],
     # Speedups to Singletons
     "st_D": [],
     "st_t": [],
     "st_T": [],
-    "st_tD": []
+    "st_tD": [],
+}
+
+extra_stats = {
+    "m": [],
+    "num_iters_faster_than_naive": [],
+    "num_iters_faster_than_empty": [],
 }
 
 for file in os.listdir(args.datadir):
@@ -164,6 +171,7 @@ for file in os.listdir(args.datadir):
         data["su_covered"].append(rule["covered"] / naive["covered"])
         data["su_time"].append(naive["time"] / rule["time"])
         data["su_gD"].append(naive["greedy_domset"] / rule["greedy_domset"])
+        data["su_gtD"].append(naive["greedy_domset"] - rule["greedy_domset"])
         data["su_gt"].append(naive["greedy_time"] / rule["greedy_time"])
 
         data["st_D"].append(empty["greedy_domset"] / rule["greedy_domset"])
@@ -171,7 +179,10 @@ for file in os.listdir(args.datadir):
         data["st_T"].append(empty["greedy_time"] / (rule["time"] + rule["greedy_time"]))
         data["st_tD"].append(empty["greedy_domset"] - rule["greedy_domset"])
 
+    times = {}
     for rule in out["extra"]:
+        times[rule["iter"]] = (rule["time"], rule["greedy_time"])
+
         if rule["iter"] == 1:
             continue
 
@@ -195,12 +206,43 @@ for file in os.listdir(args.datadir):
         data["su_covered"].append(rule["covered"] / naive["covered"])
         data["su_time"].append(naive["time"] / rule["time"])
         data["su_gD"].append(naive["greedy_domset"] / rule["greedy_domset"])
+        data["su_gtD"].append(naive["greedy_domset"] - rule["greedy_domset"])
         data["su_gt"].append(naive["greedy_time"] / rule["greedy_time"])
 
         data["st_D"].append(empty["greedy_domset"] / rule["greedy_domset"])
         data["st_t"].append(empty["greedy_time"] / rule["greedy_time"])
         data["st_T"].append(empty["greedy_time"] / (rule["time"] + rule["greedy_time"]))
         data["st_tD"].append(empty["greedy_domset"] - rule["greedy_domset"])
+
+    iter = 1
+
+    iter_naive = None
+    iter_empty = None
+    cum_rule_time = 0
+    while True:
+        if iter not in times or (iter_naive is not None and iter_empty is not None):
+            if iter_naive is None:
+                iter_naive = iter
+
+            if iter_empty is None:
+                iter_empty = iter
+
+            break
+        (rt, gt) = times[iter]
+
+        cum_rule_time += rt
+
+        if iter_naive is None and cum_rule_time > naive["time"]:
+            iter_naive = iter - 1
+
+        if iter_empty is None and cum_rule_time + gt > empty["greedy_time"]:
+            iter_empty = iter - 1
+
+        iter += 1
+
+    extra_stats["m"].append(out["m"])
+    extra_stats["num_iters_faster_than_naive"].append(iter_naive)
+    extra_stats["num_iters_faster_than_empty"].append(iter_empty)
 
 
 data = pd.DataFrame.from_dict(data)
@@ -214,107 +256,50 @@ data["frac_covered"] = data["rule_covered"] / data["n"]
 extra_data = data[data.rule_name == "Extra"]
 data = data[data.iter == 1]
 
-print("Speedups:")
-for rule in ["Linear", "Plus", "Extra"]:
+
+def print_stat(data, rule, stat, label):
     print(
-        rule,
-        "\n- time[Naive]: ",
-        data[data.rule_name == rule]["su_time"].mean(),
-        "\n- n[Naive]: ",
-        data[data.rule_name == rule]["su_n"].mean(),
-        "\n- m[Naive]: ",
-        data[data.rule_name == rule]["su_m"].mean(),
-        "\n- D[Naive]: ",
-        data[data.rule_name == rule]["su_D"].mean(),
-        "\n- covered[Naive]: ",
-        data[data.rule_name == rule]["su_covered"].mean(),
-        "\n- GreedyD[Naive]: ",
-        data[data.rule_name == rule]["su_gD"].mean(),
-        "\n- GreedyTime[Naive]: ",
-        data[data.rule_name == rule]["su_gt"].mean(),
-        "\n- GreedyD[Empty]: ",
-        data[data.rule_name == rule]["st_D"].mean(),
-        "\n- GreedyTime[Empty]: ",
-        data[data.rule_name == rule]["st_t"].mean(),
-        "\n- Time[Empty]: ",
-        data[data.rule_name == rule]["st_T"].mean(),
-        "\n",
+        "- {} (m > 1e4): {}\n- {} (m > 1e6): {}".format(
+            label,
+            data[data.rule_name == rule][stat].mean(),
+            label,
+            data[(data.rule_name == rule) & (data.m > 1000000)][stat].mean(),
+        )
     )
 
 
-class LogBelowCompressAboveScale(mscale.ScaleBase):
-    name = "log_below_10"
-
-    def __init__(self, axis, **kwargs):
-        super().__init__(axis)
-        self.threshold = 10
-        self.compression = 0.2
-
-    def get_transform(self):
-        return self.LogBelowCompressAboveTransform(self.threshold, self.compression)
-
-    def set_default_locators_and_formatters(self, axis):
-        axis.set_major_locator(LogLocator(base=10.0))
-        axis.set_major_formatter(ScalarFormatter())
-
-    def limit_range_for_scale(self, vmin, vmax, minpos):
-        return max(vmin, 1e-3), vmax
-
-    class LogBelowCompressAboveTransform(mtransforms.Transform):
-        input_dims = 1
-        output_dims = 1
-        is_separable = True
-
-        def __init__(self, threshold, compression):
-            super().__init__()
-            self.threshold = threshold
-            self.compression = compression
-
-        def transform_non_affine(self, y):
-            y = np.asarray(y)
-            with np.errstate(divide="ignore"):
-                return np.where(
-                    y <= self.threshold,
-                    np.log10(y),
-                    np.log10(self.threshold)
-                    + np.log10(y / self.threshold) * self.compression,
-                )
-
-        def inverted(self):
-            return LogBelowCompressAboveScale.InvertedLogBelowCompressAboveTransform(
-                self.threshold, self.compression
-            )
-
-    class InvertedLogBelowCompressAboveTransform(mtransforms.Transform):
-        input_dims = 1
-        output_dims = 1
-        is_separable = True
-
-        def __init__(self, threshold, compression):
-            super().__init__()
-            self.threshold = threshold
-            self.compression = compression
-
-        def transform_non_affine(self, y):
-            y = np.asarray(y)
-            return np.where(
-                y <= np.log10(self.threshold),
-                10**y,
-                self.threshold
-                * 10 ** ((y - np.log10(self.threshold)) / self.compression),
-            )
-
-        def inverted(self):
-            return LogBelowCompressAboveScale.LogBelowCompressAboveTransform(
-                self.threshold, self.compression
-            )
+for rule in ["Linear", "Plus", "Extra"]:
+    print(f"Average {rule} Speedups")
+    for stat, label in [
+        ("su_time", "Time[Naive]"),
+        ("su_n", "RemovedNodes[Naive]"),
+        ("su_m", "RemovedEdges[Naive]"),
+        ("su_gD", "GreedyDomset[Naive]"),
+        ("su_gtD", "TotalGreedyDomset[Naive]"),
+        ("st_D", "GreedyDomset[NoRule]"),
+        ("st_T", "TotalTime[NoRule]"),
+        ("st_tD", "TotalGreedyDomset[NoRule]"),
+    ]:
+        print_stat(data, rule, stat, label)
+    print()
 
 
-# Register the custom scale
-mscale.register_scale(LogBelowCompressAboveScale)
+extra_stats = pd.DataFrame.from_dict(extra_stats)
+print(
+    "Extra-Stats",
+    "\n- Average Number of Iterations until Naive was faster (m > 1e4): ",
+    extra_stats[extra_stats.m > 10000]["num_iters_faster_than_naive"].mean(),
+    "\n- Average Number of Iterations until Naive was faster (m > 1e6): ",
+    extra_stats[extra_stats.m > 1000000]["num_iters_faster_than_naive"].mean(),
+    "\n- Average Number of Iterations until Empty was faster (m > 1e4): ",
+    extra_stats[extra_stats.m > 10000]["num_iters_faster_than_empty"].mean(),
+    "\n- Average Number of Iterations until Empty was faster (m > 1e6): ",
+    extra_stats[extra_stats.m > 1000000]["num_iters_faster_than_empty"].mean(),
+)
 
 sns_palette = sns.color_palette("colorblind")
 sns_palette = [sns_palette[0], sns_palette[1], sns_palette[4]]
+
 
 def plot_distr(data, x, x_label, extra, name):
     plt.clf()
@@ -326,7 +311,7 @@ def plot_distr(data, x, x_label, extra, name):
 
     filtered = data[data.rule_name != "Naive"]
     if not extra:
-        filtered = filtered[filtered.rule_name != "Extra"] 
+        filtered = filtered[filtered.rule_name != "Extra"]
     bins = np.logspace(np.log10(1), np.log10(data[x].max()), 50)
 
     hue_order = ["Linear", "Plus"]
@@ -344,7 +329,7 @@ def plot_distr(data, x, x_label, extra, name):
         palette=palette,
         bins=bins,
         element="step",
-        stat="density",
+        stat="count",
         common_norm=False,
     )
 
@@ -352,14 +337,12 @@ def plot_distr(data, x, x_label, extra, name):
     plt.yscale("log")
 
     plot.set(
-        ylabel=r"\textsc{Density among Instances}",
+        ylabel=r"\textsc{Number of Instances}",
         xlabel=x_label,
     )
 
     handles = [
-        Line2D(
-            [0], [0], color=sns_palette[0], lw=2, label="Linear"
-        ),
+        Line2D([0], [0], color=sns_palette[0], lw=2, label="Linear"),
         Line2D([0], [0], color=sns_palette[1], lw=2, label="Plus"),
     ]
     labels = [r"\textsc{Linear}", r"\textsc{Plus}"]
@@ -376,7 +359,7 @@ def plot_distr(data, x, x_label, extra, name):
 plot_distr(
     data,
     "su_n",
-    r"\textsc{Increase in Removed Nodes to Naive}",
+    r"\textsc{RemovedNodes[Rule1] / RemovedNodes[Naive]}",
     False,
     "nodes",
 )
@@ -384,7 +367,7 @@ plot_distr(
 plot_distr(
     data,
     "su_m",
-    r"\textsc{Increase in Removed Edges to Naive}",
+    r"\textsc{RemovedEdges[Rule1] / RemovedEdges[Naive]}",
     True,
     "edges",
 )
@@ -392,7 +375,7 @@ plot_distr(
 plot_distr(
     data,
     "st_tD",
-    r"\textsc{Total Increase in Dominating Nodes to No Rule1}",
+    r"\textsc{GreedyBefore[Rule1] / GreedyAfter[Rule1]}",
     True,
     "empty",
 )
@@ -440,15 +423,19 @@ sns.set_palette("colorblind")
 plt.rcParams["text.usetex"] = True
 plt.rcParams["figure.figsize"] = 7, 4
 
-plot = sns.scatterplot(
-    extra_data,
+bins = np.logspace(np.log10(1), np.log10(extra_data["iter"].max()), 50)
+
+plot = sns.histplot(
+    data=extra_data,
     x="iter",
-    y="rule_D",
-    alpha=0.7,
+    bins=bins,
+    element="step",
+    stat="count",
+    common_norm=False,
 )
 
 plt.xscale("log")
-plt.yscale("log")
+plt.yscale("linear")
 
 plot.set(
     xlabel=r"\textsc{Iteration of Rule1-Extra}",

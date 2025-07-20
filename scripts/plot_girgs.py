@@ -111,10 +111,13 @@ data = {
     "su_covered": [],
     "su_time": [],
     "su_gD": [],
+    "su_gtD": [],
     "su_gt": [],
     # Speedups to Singletons
     "st_D": [],
     "st_t": [],
+    "st_T": [],
+    "st_tD": [],
 }
 
 
@@ -159,10 +162,13 @@ for file in os.listdir(args.datadir):
         data["su_covered"].append(rule["covered"] / naive["covered"])
         data["su_time"].append(naive["time"] / rule["time"])
         data["su_gD"].append(naive["greedy_domset"] / rule["greedy_domset"])
+        data["su_gtD"].append(naive["greedy_domset"] - rule["greedy_domset"])
         data["su_gt"].append(naive["greedy_time"] / rule["greedy_time"])
 
         data["st_D"].append(empty["greedy_domset"] / rule["greedy_domset"])
         data["st_t"].append(empty["greedy_time"] / rule["greedy_time"])
+        data["st_T"].append(empty["greedy_time"] / (rule["time"] + rule["greedy_time"]))
+        data["st_tD"].append(empty["greedy_domset"] - rule["greedy_domset"])
 
 
 data = pd.DataFrame.from_dict(data)
@@ -172,31 +178,32 @@ data["frac_m"] = data["rule_m"] / data["m"]
 data["frac_D"] = data["rule_D"] / data["n"]
 data["frac_covered"] = data["rule_covered"] / data["n"]
 
-print("Speedups:")
-for rule in ["Linear", "Plus", "Extra"]:
+
+def print_stat(data, rule, stat, label):
     print(
-        rule,
-        "\n- time[Naive]: ",
-        data[data.rule_name == rule]["su_time"].mean(),
-        "\n- n[Naive]: ",
-        data[data.rule_name == rule]["su_n"].mean(),
-        "\n- m[Naive]: ",
-        data[data.rule_name == rule]["su_m"].mean(),
-        "\n- D[Naive]: ",
-        data[data.rule_name == rule]["su_D"].mean(),
-        "\n- covered[Naive]: ",
-        data[data.rule_name == rule]["su_covered"].mean(),
-        "\n- GreedyD[Naive]: ",
-        data[data.rule_name == rule]["su_gD"].mean(),
-        "\n- GreedyTime[Naive]: ",
-        data[data.rule_name == rule]["su_gt"].mean(),
-        "\n- GreedyD[Empty]: ",
-        data[data.rule_name == rule]["st_D"].mean(),
-        "\n- GreedyTime[Empty]: ",
-        data[data.rule_name == rule]["st_t"].mean(),
-        "\n",
+        "- {} (m > 1e4): {}\n- {} (m > 1e6): {}".format(
+            label,
+            data[data.rule_name == rule][stat].mean(),
+            label,
+            data[(data.rule_name == rule) & (data.m > 1000000)][stat].mean(),
+        )
     )
 
+
+for rule in ["Linear", "Plus", "Extra"]:
+    print(f"Average {rule} Speedups")
+    for stat, label in [
+        ("su_time", "Time[Naive]"),
+        ("su_n", "RemovedNodes[Naive]"),
+        ("su_m", "RemovedEdges[Naive]"),
+        ("su_gD", "GreedyDomset[Naive]"),
+        ("su_gtD", "TotalGreedyDomset[Naive]"),
+        ("st_D", "GreedyDomset[NoRule]"),
+        ("st_T", "TotalTime[NoRule]"),
+        ("st_tD", "TotalGreedyDomset[NoRule]"),
+    ]:
+        print_stat(data, rule, stat, label)
+    print()
 
 plt.clf()
 
