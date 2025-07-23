@@ -78,8 +78,7 @@ impl Rule1Naive {
 
             if type3 {
                 sol.add_node(u);
-                redundant |= &type23;
-                redundant.set_bit(u);
+                redundant.set_bits(type23.iter_set_bits());
                 cov.set_bits(graph.closed_neighbors_of(u));
             }
         }
