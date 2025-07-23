@@ -127,9 +127,14 @@ fn main() -> std::io::Result<()> {
         let after_edges = graph.num_edges();
         let after_in_domset = naive_ds.len();
         let after_covered = naive_cov.cardinality();
+    
+        for u in naive_ds.iter() {
+            graph.remove_edges_at_node(u);
+        }
 
         let (greedy_ds, greedy_time) =
             run_greedy(&graph, &mut rng, &naive_ds, &naive_cov, greedy_iter);
+        
         assert!(greedy_ds.is_valid(&org_graph));
 
         report(
