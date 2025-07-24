@@ -227,7 +227,7 @@ plot = sns.scatterplot(
 )
 
 plt.xscale("log")
-plt.yscale("linear")
+plt.yscale("log")
 
 plot.set(
     xlabel=r"\textsc{Input: Number of Edges}",
@@ -237,6 +237,11 @@ plot.set(
 handles, labels = plot.get_legend_handles_labels()
 labels = [r"\textsc{Linear}", r"\textsc{Plus}", r"\textsc{Extra}"]
 
-plt.legend(handles[::-1], labels[::-1], title=r"\textsc{Rule1}")
+legend = plt.legend(handles[::-1], labels[::-1], title=r"\textsc{Rule1}", loc=2)
+
+x_vals = [0.5 * 10**6, 10**8]
+(l1,) = plt.plot(x_vals, [0.00015 * (x) ** 0.72 for x in x_vals], color="blue")
+handles, labels = plot.get_legend_handles_labels()
+plt.legend([l1], [r"$f(x)=0.00015 x^{0.72}$"], loc=4)
 
 plt.savefig(f"{args.outpath}/time_girgs.pdf", format="pdf", bbox_inches="tight")

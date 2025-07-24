@@ -116,6 +116,7 @@ data = {
     "su_gD": [],
     "su_gtD": [],
     "su_gt": [],
+    "su_tT": [],
     # Speedups to Singletons
     "st_D": [],
     "st_t": [],
@@ -129,11 +130,7 @@ extra_stats = {
     "num_iters_faster_than_empty": [],
 }
 
-no_naive_times = {
-    "Linear": [],
-    "Plus": [],
-    "Extra": []
-}
+no_naive_times = {"Linear": [], "Plus": [], "Extra": []}
 
 for file in os.listdir(args.datadir):
     out = parse_file(f"{args.datadir}/{file}")
@@ -143,11 +140,10 @@ for file in os.listdir(args.datadir):
         rule not in out["rules"]
         for rule in ["Singletons", "Naive", "Linear", "Plus", "Extra"]
     ):
-        # Check if only Naive was not run 
+        # Check if only Naive was not run
         if all(rule in out["rules"] for rule in ["Linear", "Plus", "Extra"]):
             for rule in ["Linear", "Plus", "Extra"]:
                 no_naive_times[rule].append(out["rules"][rule]["time"])
-
         continue
 
     empty = out["rules"]["Singletons"]
@@ -184,6 +180,7 @@ for file in os.listdir(args.datadir):
         data["su_gD"].append(naive["greedy_domset"] / rule["greedy_domset"])
         data["su_gtD"].append(naive["greedy_domset"] - rule["greedy_domset"])
         data["su_gt"].append(naive["greedy_time"] / rule["greedy_time"])
+        data["su_tT"].append(naive["time"] - rule["time"])
 
         data["st_D"].append(empty["greedy_domset"] / rule["greedy_domset"])
         data["st_t"].append(empty["greedy_time"] / rule["greedy_time"])
@@ -219,6 +216,7 @@ for file in os.listdir(args.datadir):
         data["su_gD"].append(naive["greedy_domset"] / rule["greedy_domset"])
         data["su_gtD"].append(naive["greedy_domset"] - rule["greedy_domset"])
         data["su_gt"].append(naive["greedy_time"] / rule["greedy_time"])
+        data["su_tT"].append(naive["time"] - rule["time"])
 
         data["st_D"].append(empty["greedy_domset"] / rule["greedy_domset"])
         data["st_t"].append(empty["greedy_time"] / rule["greedy_time"])
@@ -259,21 +257,36 @@ for file in os.listdir(args.datadir):
 data = pd.DataFrame.from_dict(data)
 data = data[data.m > 10000]
 
+data["density"] = (2 * data["m"]) / (data["n"] * (data["n"] - 1))
 data["frac_n"] = data["rule_n"] / data["n"]
 data["frac_m"] = data["rule_m"] / data["m"]
 data["frac_D"] = data["rule_D"] / data["n"]
 data["frac_covered"] = data["rule_covered"] / data["n"]
 
+print(data["m"].max())
+
 extra_data = data[data.rule_name == "Extra"]
 data = data[data.iter == 1]
 
-def print_stat(data, rule, stat, label):
+
+def print_mean(data, rule, stat, label):
     print(
         "- {} (m > 1e4): {}\n- {} (m > 1e6): {}".format(
             label,
             data[data.rule_name == rule][stat].mean(),
             label,
             data[(data.rule_name == rule) & (data.m > 1000000)][stat].mean(),
+        )
+    )
+
+
+def print_median(data, rule, stat, label):
+    print(
+        "- {} (m > 1e4) (Med): {}\n- {} (m > 1e6) (Med): {}".format(
+            label,
+            data[data.rule_name == rule][stat].median(),
+            label,
+            data[(data.rule_name == rule) & (data.m > 1000000)][stat].median(),
         )
     )
 
@@ -290,23 +303,20 @@ for rule in ["Linear", "Plus", "Extra"]:
         ("st_T", "TotalTime[NoRule]"),
         ("st_tD", "TotalGreedyDomset[NoRule]"),
     ]:
-        print_stat(data, rule, stat, label)
+        print_mean(data, rule, stat, label)
+        print_median(data, rule, stat, label)
     print()
 
 
 no_naive_times = pd.DataFrame.from_dict(no_naive_times)
-print(
-    "In ",
-    len(no_naive_times),
-    " Instances, Naive did not finish in 1 hour, but"
-)
+print("In ", len(no_naive_times), " Instances, Naive did not finish in 1 hour, but")
 for rule in ["Linear", "Plus", "Extra"]:
     print(
         "- ",
         rule,
         "finished on average in ",
         no_naive_times[rule].mean() / 1000000000,
-        " seconds!"
+        " seconds!",
     )
 print()
 
@@ -323,7 +333,13 @@ print(
     extra_stats[extra_stats.m > 1000000]["num_iters_faster_than_empty"].mean(),
 )
 
-
+print(
+    "\nNaive was faster than Extra by a total of ",
+    -data[data.su_time < 1.0]["su_tT"].mean() / 1000000000,
+    "s (avg) and ",
+    -data[data.su_time < 1.0]["su_tT"].min() / 1000000000,
+    "s (max)",
+)
 
 sns_palette = sns.color_palette("colorblind")
 sns_palette = [sns_palette[0], sns_palette[1], sns_palette[4]]
@@ -451,19 +467,28 @@ sns.set_palette("colorblind")
 plt.rcParams["text.usetex"] = True
 plt.rcParams["figure.figsize"] = 7, 4
 
-bins = np.logspace(np.log10(1), np.log10(extra_data["iter"].max()), 50)
-
-plot = sns.histplot(
+plot = sns.lineplot(
     data=extra_data,
     x="iter",
-    bins=bins,
-    element="step",
-    stat="count",
-    common_norm=False,
+    y="rule_D",
+    estimator=np.median,
+    label=r"\textsc{Median}",
+)
+
+sns.lineplot(
+    data=extra_data, x="iter", y="rule_D", estimator=np.mean, label=r"\textsc{Mean}"
+)
+
+sns.lineplot(
+    data=extra_data,
+    x="iter",
+    y="rule_D",
+    estimator=np.max,
+    label=r"\textsc{Max}",
 )
 
 plt.xscale("log")
-plt.yscale("linear")
+plt.yscale("log")
 
 plot.set(
     xlabel=r"\textsc{Iteration of Rule1-Extra}",
