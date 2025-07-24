@@ -243,5 +243,6 @@ x_vals = [0.5 * 10**6, 10**8]
 (l1,) = plt.plot(x_vals, [0.00015 * (x) ** 0.72 for x in x_vals], color="blue")
 handles, labels = plot.get_legend_handles_labels()
 plt.legend([l1], [r"$f(x)=0.00015 x^{0.72}$"], loc=4)
+plt.gca().add_artist(legend)
 
 plt.savefig(f"{args.outpath}/time_girgs.pdf", format="pdf", bbox_inches="tight")
