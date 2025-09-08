@@ -55,7 +55,7 @@ def main():
     args = parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
 
-    degrees = range(10, 100)
+    degrees = range(10, 2000)
 
     job_args = [(deg, args.output, args.binary, args.girgs) for deg in degrees]
 
