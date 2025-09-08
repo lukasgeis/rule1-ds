@@ -19,14 +19,11 @@ def process_file(args):
 
     print(f"Run on {input_file}")
     with open(output_file, "w") as out:
-        cat_proc = subprocess.Popen(["cat", input_file], stdout=subprocess.PIPE)
-        binary_proc = subprocess.Popen(
-            [binary_path],
-            stdin=cat_proc.stdout,
+        proc = subprocess.Popen(
+            [binary_path, "--file", input_file],
             stderr=out,
         )
-        cat_proc.stdout.close()
-        binary_proc.communicate()
+        proc.wait()
 
 
 def main():

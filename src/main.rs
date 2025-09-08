@@ -17,9 +17,13 @@ use crate::{
 };
 
 use std::{
-    io::{Read, Write},
+    fs::File,
+    io::{BufReader, Read, Write},
+    path::PathBuf,
     time::Instant,
 };
+
+use structopt::StructOpt;
 
 macro_rules! time {
     ($code:block) => {
@@ -29,6 +33,15 @@ macro_rules! time {
             timer.elapsed().as_nanos()
         }
     };
+}
+
+#[derive(StructOpt)]
+struct Args {
+    #[structopt(short, long, parse(from_os_str))]
+    file: PathBuf,
+
+    #[structopt(short, long)]
+    girgs: bool,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -51,6 +64,8 @@ fn report(
 fn main() -> std::io::Result<()> {
     let mut stderr = std::io::stderr();
 
+    let args = Args::from_args();
+
     let greedy_iter = 10u128;
     let mut rng = Pcg64Mcg::seed_from_u64(3);
 
@@ -58,10 +73,15 @@ fn main() -> std::io::Result<()> {
 
     // Load into buffer to prevent external factors in measurement
     let mut buffer = vec![];
-    std::io::stdin().lock().read_to_end(&mut buffer)?;
+    BufReader::new(File::open(args.file)?).read_to_end(&mut buffer)?;
 
     let timer = Instant::now();
-    let org_graph = Graph::try_read_pace(std::io::Cursor::new(buffer))?;
+    let org_graph = if args.girgs {
+        Graph::try_read_girgs(std::io::Cursor::new(buffer))?
+    } else {
+        Graph::try_read_pace(std::io::Cursor::new(buffer))?
+    };
+
     let read_time = timer.elapsed().as_nanos();
 
     writeln!(
@@ -127,14 +147,14 @@ fn main() -> std::io::Result<()> {
         let after_edges = graph.num_edges();
         let after_in_domset = naive_ds.len();
         let after_covered = naive_cov.cardinality();
-    
+
         for u in naive_ds.iter() {
             graph.remove_edges_at_node(u);
         }
 
         let (greedy_ds, greedy_time) =
             run_greedy(&graph, &mut rng, &naive_ds, &naive_cov, greedy_iter);
-        
+
         assert!(greedy_ds.is_valid(&org_graph));
 
         report(

@@ -6,9 +6,15 @@ pub type Result<T> = std::io::Result<T>;
 
 impl Graph {
     pub fn try_read_pace<R: BufRead>(reader: R) -> Result<Self> {
-        let pace_reader = PaceReader::try_new(reader)?;
+        let pace_reader = PaceReader::try_new(reader, false)?;
         let n = pace_reader.number_of_nodes();
         Ok(Self::new(n, pace_reader))
+    }
+
+    pub fn try_read_girgs<R: BufRead>(reader: R) -> Result<Self> {
+        let girgs_reader = PaceReader::try_new(reader, true)?;
+        let n = girgs_reader.number_of_nodes();
+        Ok(Self::new(n, girgs_reader))
     }
 }
 
@@ -16,15 +22,17 @@ pub struct PaceReader<R> {
     lines: Lines<R>,
     number_of_nodes: Node,
     number_of_edges: usize,
+    girgs: bool,
 }
 
 #[allow(dead_code)]
 impl<R: BufRead> PaceReader<R> {
-    pub fn try_new(reader: R) -> Result<Self> {
+    pub fn try_new(reader: R, girgs: bool) -> Result<Self> {
         let mut pace_reader = Self {
             lines: reader.lines(),
             number_of_nodes: 0,
             number_of_edges: 0,
+            girgs,
         };
 
         (pace_reader.number_of_nodes, pace_reader.number_of_edges) = pace_reader.parse_header()?;
@@ -40,7 +48,9 @@ impl<R: BufRead> Iterator for PaceReader<R> {
     type Item = Edge;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.parse_edge_line().unwrap().map(|(u, v)| (u - 1, v - 1))
+        self.parse_edge_line()
+            .unwrap()
+            .map(|(u, v)| if self.girgs { (u, v) } else { (u - 1, v - 1) })
     }
 }
 
@@ -93,17 +103,19 @@ impl<R: BufRead> PaceReader<R> {
 
         let mut parts = line.split(' ').filter(|t| !t.is_empty());
 
-        raise_error_unless!(
-            parts.next().is_some_and(|t| t.starts_with('p')),
-            ErrorKind::InvalidData,
-            "Invalid header found; line should start with p"
-        );
+        if !self.girgs {
+            raise_error_unless!(
+                parts.next().is_some_and(|t| t.starts_with('p')),
+                ErrorKind::InvalidData,
+                "Invalid header found; line should start with p"
+            );
 
-        raise_error_unless!(
-            parts.next() == Some("ds"),
-            ErrorKind::InvalidData,
-            "Invalid header found; file type should be \"ds\""
-        );
+            raise_error_unless!(
+                parts.next() == Some("ds"),
+                ErrorKind::InvalidData,
+                "Invalid header found; file type should be \"ds\""
+            );
+        }
 
         let number_of_nodes = parse_next_value!(parts, "Header>Number of nodes");
         let number_of_edges = parse_next_value!(parts, "Header>Number of edges");
@@ -113,6 +125,10 @@ impl<R: BufRead> PaceReader<R> {
             ErrorKind::InvalidData,
             "Invalid header found; expected end of line"
         );
+
+        if self.girgs {
+            let _ = self.lines.next();
+        }
 
         Ok((number_of_nodes, number_of_edges))
     }
