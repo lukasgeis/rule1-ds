@@ -4,3 +4,6 @@
 /stride-logs
 runner
 Cargo.lock
+*.gr
+*.gr.bz2
+*.log

@@ -1,3 +1,6 @@
 target
 output
-data
+input
+*.gr
+*.gr.bz2
+*.log
