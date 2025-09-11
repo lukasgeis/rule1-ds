@@ -6,6 +6,7 @@ mod marker;
 mod radix;
 mod rule1;
 
+use bzip2::bufread::BzDecoder;
 use rand::SeedableRng;
 use rand_pcg::Pcg64Mcg;
 
@@ -17,6 +18,7 @@ use crate::{
 };
 
 use std::{
+    ffi::OsString,
     fs::File,
     io::{BufReader, Read, Write},
     path::PathBuf,
@@ -73,7 +75,15 @@ fn main() -> std::io::Result<()> {
 
     // Load into buffer to prevent external factors in measurement
     let mut buffer = vec![];
-    BufReader::new(File::open(args.file)?).read_to_end(&mut buffer)?;
+    if args
+        .file
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case(OsString::from("bz2")))
+    {
+        BzDecoder::new(BufReader::new(File::open(args.file)?)).read_to_end(&mut buffer)?;
+    } else {
+        BufReader::new(File::open(args.file)?).read_to_end(&mut buffer)?;
+    }
 
     let timer = Instant::now();
     let org_graph = if args.girgs {
