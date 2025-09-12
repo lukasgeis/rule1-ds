@@ -18,7 +18,7 @@ def parse_args():
 
 
 def process_file(args):
-    input_file, output_dir, binary_path, skip_existing = args
+    input_file, output_dir, binary_path = args
     name = input_file.stem
     if name.endswith(".gr"):
         name = name[:-3]
