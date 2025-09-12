@@ -16,6 +16,7 @@ RUN apt-get update && \
     git curl tree \
     cmake g++ gcc \
     libbz2-1.0 libomp-dev \
+    texlive texlive-latex-extra cm-super dvipng \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 ## Building Girgs

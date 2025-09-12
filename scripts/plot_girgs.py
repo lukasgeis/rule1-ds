@@ -9,6 +9,7 @@ import pandas as pd
 import argparse as cli
 import os
 import re
+from pathlib import Path
 
 parser = cli.ArgumentParser()
 parser.add_argument("datadir")
@@ -122,8 +123,8 @@ data = {
 }
 
 
-for file in os.listdir(args.datadir):
-    out = parse_file(f"{args.datadir}/{file}")
+for file in Path(args.datadir).glob("*.log"):
+    out = parse_file(file)
 
     # Something went wrong here and the file does not include a full dataset
     if any(

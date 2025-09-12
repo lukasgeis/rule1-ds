@@ -26,12 +26,12 @@ docker_run() {
 ########
 
 # run experiments on data set
-docker_run /app/scripts/run.py       -o /output/data  -b /app/rule1 -i /input -n $NUM_THREADS_BASE
+#docker_run /app/scripts/run.py       -o /output/data  -b /app/rule1 -i /input -n $NUM_THREADS_BASE
 #docker_run /app/scripts/run.py       -o /output/data  -b /app/rule1 -i /input -n $NUM_THREADS_BASE
 
 ########
 
-#docker_run /app/scripts/run_girgs.py -o /output/girgs -b /app/rule1 -g /app/girgs/build/genhrg -n $NUM_THREADS_GIRG
-#docker_run 
+docker_run /app/scripts/run_girgs.py -o /output/girgs -b /app/rule1 -g /app/girgs/build/genhrg -n $NUM_THREADS_GIRG
+docker_run /app/scripts/plot_girgs.py /output/girgs /output/plots/ | tee output/plots/girgs_stats.log
 
 
