@@ -1,32 +1,24 @@
 # DominatingSet Rule1 Reduction
 
-This is a minimalist fork of our more extensive implementation in the [PaceYourself](https://github.com/manpen/pace25/tree/master) solver.
-Please refer to the PaceYourself-Version for a stronger and more efficient implementation.
+This repository may be used to reproduce the experiments described in 
 
-See the original formuation of this reduction-rule in \[OriginalRule1\] and \[LinearRule1\] for our improved version.
+  "Revisiting a Successful Reduction Rule for Dominating Set" by Geis, Leonhardt, Meintrup, Meyer, Penschuck and Retschmeier, ALENEX 2026.
+
+It is a minimalistic fork of our more extensive implementation in the [PaceYourself](https://github.com/manpen/pace25/tree/master) solver.
+If you want to use the code the [solver repository] (https://github.com/manpen/pace25/tree/master) is most likely the better starting point.
+
+## Instructions
+The experiments in the paper rely on a large number of graph instances totalling ~80 GB in size.
+We provide a "base" set of instances to get started (instances below 150 MB) and optional additional instances (above 150 MB) to reproduce the full set of experiments.
+
+ - Before beginning download the following datasets and extract all files directly into the folder `input`;
+   the individual instance files should stay bz2 compressed:
+   - base dataset (15 GB):             https://ae.cs.uni-frankfurt.de/public_files/raw/alenex26_base.tar   extract to input/base
+   - OPTIONAL large instances (65 GB): https://ae.cs.uni-frankfurt.de/public_files/raw/alenex26_large.tar  extract to input/large
+ - Adjust the number of threads in the beginning of `run.sh` (see comments there)
+ - Execute `run.sh`. Runtime roughly:
+    
+    + 100h / NUM_THREADS_GIRGS
 
 
-### Citations
-```
-@article{OriginalRule1,
-  author  = {Jochen Alber and
-             Michael R. Fellows and
-             Rolf Niedermeier},
-  title   = {Polynomial-time data reduction for dominating set},
-  journal = {J. {ACM}},
-  volume  = {51},
-  number  = {3},
-  pages   = {363--384},
-  year    = {2004}
-}
 
-@misc{LinearRule1,
-  title   = {Simpler, Better, Faster, Stronger: Revisiting a Successful Reduction Rule for Dominating Set}, 
-  author  = {Lukas Geis and Alexander Leonhardt and Johannes Meintrup and Ulrich Meyer and Manuel Penschuck},
-  year    = {2025},
-  eprint  = {2506.14564},
-  url     = {https://arxiv.org/abs/2506.14564}, 
-  archivePrefix = {arXiv},
-  primaryClass  = {cs.DS},
-}
-```

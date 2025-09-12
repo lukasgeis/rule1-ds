@@ -7,6 +7,7 @@ import random
 from multiprocessing import Pool
 from tqdm import tqdm
 import tempfile
+import os
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -14,7 +15,6 @@ def parse_args():
     parser.add_argument("-b", "--binary", required=True, type=Path)
     parser.add_argument("-g", "--girgs", required=True, type=Path)
     parser.add_argument("-n", "--num_threads", type=int, default=4)
-    parser.add_argument("-s", "--skip-existing", action="store_true")
     return parser.parse_args()
 
 
@@ -23,10 +23,19 @@ def process_degree(args):
 
     output_file = output_dir / f"girgs_deg{deg}.log"
 
+    try:
+        # test whether file exists and is complete ("maxrss" is contained in the last line)
+        with open(output_file, "r") as existing:
+            for line in existing:
+                if "maxrss" in line:
+                    return
+    except:
+        pass
+
     girgs_path = girgs_path.resolve()
 
-    with tempfile.NamedTemporaryFile(delete=True) as tmp_file:
-        tmp_file.close()
+    with tempfile.TemporaryDirectory(delete=True, dir=output_dir) as tmpdir:
+        tmp_file = Path(tmpdir) / "graph"
         cmd = [
             str(girgs_path),
             "-n", "100000",
@@ -34,21 +43,23 @@ def process_degree(args):
             "-a", "1",
             "-t", "0",
             "-edge", "1",
-            "-file", tmp_file.name,
+            "-file", str(tmp_file),
         ]
 
         subprocess.run(
             cmd, check=True, capture_output=True, text=True
         )
+
+        input_file = tmp_file.with_suffix(".txt")
+        assert input_file.exists
         
         with open(output_file, "w") as out:
             proc = subprocess.Popen(
-                [binary_path, 
-                 "--file", Path(tmp_file.name).with_suffix(".txt"),
-                   "--girgs"],
+                [binary_path, "--file", input_file, "--girgs"],
                 stderr=out,
             )
-            proc.wait()
+            _, _, rusage = os.wait4(proc.pid, 0)
+            out.write(f"maxrss={rusage.ru_maxrss*1024} bytes\n")
 
 
 

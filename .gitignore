@@ -7,3 +7,4 @@ Cargo.lock
 *.gr
 *.gr.bz2
 *.log
+alenex*.tar

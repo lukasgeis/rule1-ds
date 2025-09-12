@@ -5,6 +5,7 @@ from tqdm import tqdm
 from pathlib import Path
 import argparse
 import random
+import os
 
 
 def parse_args():
@@ -24,16 +25,23 @@ def process_file(args):
         name = name[:-3]
 
     output_file = output_dir / f"{name}.log"
-    if skip_existing and output_file.exists():
-        return
+    if skip_existing:
+        try:
+            # test whether file exists and is complete ("maxrss" is contained in the last line)
+            with open(output_file, "r") as existing:
+                for line in existing:
+                    if "maxrss" in line:
+                        return
+        except:
+            pass
 
     with open(output_file, "w") as out:
         proc = subprocess.Popen(
             [binary_path, "--file", input_file],
             stderr=out,
         )
-        proc.wait()
-
+        _, _, rusage = os.wait4(proc.pid, 0)
+        out.write(f"maxrss={rusage.ru_maxrss*1024} bytes\n")
 
 def main():
     args = parse_args()
