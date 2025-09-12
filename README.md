@@ -4,12 +4,12 @@ This repository may be used to reproduce the experiments described in
 
   "Revisiting a Successful Reduction Rule for Dominating Set" by Geis, Leonhardt, Meintrup, Meyer, Penschuck and Retschmeier, ALENEX 2026.
 
-It is a minimalistic fork of our more extensive implementation in the [PaceYourself](https://github.com/manpen/pace25/tree/master) solver.
-If you want to use the code the [solver repository] (https://github.com/manpen/pace25/tree/master) is most likely the better starting point.
+It is a based on our more extensive implementation in the [PaceYourself](https://github.com/manpen/pace25/tree/master) solver.
+If you want to use the code beyond reproduction of the manuscript, the [solver repository] (https://github.com/manpen/pace25/tree/master) is most likely the better starting point.
 
 ## Instructions
 ### Download dataset(s)
-The paper's experiments rely on a large number of graph instances totalling ~80 GB in size.
+The paper's experiments rely on a large number of graph instances totalling ~80 GB in compressed size.
 We provide a "base" set of instances that should suffice to obtain most results (~4000 instances below 150 MB).
 Additionally we provide the remaining 120 instances above 150 MB to reproduce the full set of experiments.
    - base dataset (15 GB):             https://ae.cs.uni-frankfurt.de/public_files/raw/alenex26_base.tar   extract to input/base
