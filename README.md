@@ -1,4 +1,5 @@
 # DominatingSet Rule1 Reduction
+https://github.com/lukasgeis/rule1-ds
 
 This repository may be used to reproduce the experiments described in 
 
