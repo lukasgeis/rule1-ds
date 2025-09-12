@@ -2,7 +2,7 @@
 
 ####################################
 # these numbers work on a 32 core machine (excl. hyperthreading) with 128GB RAM
-NUM_THREADS_BASE=24     #recommended: min(#cores, RAMSIZE/)
+NUM_THREADS_BASE=12     #recommended: min(#cores, RAMSIZE/10GB); set to "4" if the machine has only 64GB RAM
 NUM_THREADS_LARGE=4     #recommended: min(#cores, RAMSIZE/32GB); set to "1" if the machine has only 64GB RAM
 NUM_THREADS_GIRG=24     #recommended: min(#cores, RAMSIZE/6GB); requires ~1GB*NUM_THREADS_GIRG of disk storage
 ####################################
