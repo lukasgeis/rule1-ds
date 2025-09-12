@@ -1,5 +1,6 @@
 /target
 /data
+/output
 .stride
 /stride-logs
 runner

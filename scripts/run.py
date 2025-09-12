@@ -47,6 +47,11 @@ def main():
     args = parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     files = list(args.input.glob("*.gr")) + list(args.input.glob("*.gr.bz2"))
+
+    if len(files) == 0:
+        print(f"No input files found in {args.input}")
+        return
+
     random.shuffle(files)
     job_args = [(f, args.output, args.binary, args.skip_existing) for f in files]
 
