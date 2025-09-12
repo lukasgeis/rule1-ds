@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 array-init = "2.1.0"
+bzip2 = "0.6.0"
 itertools = "0.14.0"
 num = "0.4.3"
 rand = "0.9.1"

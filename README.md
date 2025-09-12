@@ -1,32 +1,38 @@
 # DominatingSet Rule1 Reduction
+https://github.com/lukasgeis/rule1-ds
 
-This is a minimalist fork of our more extensive implementation in the [PaceYourself](https://github.com/manpen/pace25/tree/master) solver.
-Please refer to the PaceYourself-Version for a stronger and more efficient implementation.
+This repository may be used to reproduce the experiments described in 
 
-See the original formuation of this reduction-rule in \[OriginalRule1\] and \[LinearRule1\] for our improved version.
+  "Revisiting a Successful Reduction Rule for Dominating Set" by Geis, Leonhardt, Meintrup, Meyer, Penschuck and Retschmeier, ALENEX 2026.
+
+It is a based on our more extensive implementation in the [PaceYourself](https://github.com/manpen/pace25/tree/master) solver.
+If you want to use the code beyond reproduction of the manuscript, the [solver repository] (https://github.com/manpen/pace25/tree/master) is most likely the better starting point.
+
+## Instructions
+### Download dataset(s)
+The paper's experiments rely on a large number of graph instances totalling ~80 GB in compressed size.
+We provide a "base" set of instances that should suffice to obtain most results (~4000 instances below 150 MB).
+Additionally we provide the remaining 120 instances above 150 MB to reproduce the full set of experiments.
+   - base dataset (15 GB):             https://ae.cs.uni-frankfurt.de/public_files/raw/alenex26_base.tar   extract to input/base
+   - OPTIONAL large instances (65 GB): https://ae.cs.uni-frankfurt.de/public_files/raw/alenex26_large.tar  extract to input/large
+
+HINT: You can simply run `download_base.sh` (and optionally also `download_large.sh`) to download and extract the files. The script requires `wget` and `tar`.
+
+COMMENT TO REVIEWERS: The datasets will be uploaded to Zenodo including the respective attribution and license files (see paper for source).
+
+### Run experiments
+ - Adjust the number of threads in the beginning of `run.sh` (see comments there)
+ - Execute `run.sh`. 
+   After building the docker image two (three if large instances were downloaded) experimental campaign are started successively.
+   Each will have their own progress bar.
+ - Runtime roughly:
+        3h 
+    +  50h / NUM_THREADS_BASE
+    + 100h / NUM_THREADS_LARGE 
+    + 100h / NUM_THREADS_GIRGS
+
+REMARK: A measurement is skipped if the respective log file exists and is complete.
+Hence it should be possible to restart `./run.sh` without losing progress or needing to cleanup partial logs.
+We still recommend to backup the `output` folder before a restart ;)
 
 
-### Citations
-```
-@article{OriginalRule1,
-  author  = {Jochen Alber and
-             Michael R. Fellows and
-             Rolf Niedermeier},
-  title   = {Polynomial-time data reduction for dominating set},
-  journal = {J. {ACM}},
-  volume  = {51},
-  number  = {3},
-  pages   = {363--384},
-  year    = {2004}
-}
-
-@misc{LinearRule1,
-  title   = {Simpler, Better, Faster, Stronger: Revisiting a Successful Reduction Rule for Dominating Set}, 
-  author  = {Lukas Geis and Alexander Leonhardt and Johannes Meintrup and Ulrich Meyer and Manuel Penschuck},
-  year    = {2025},
-  eprint  = {2506.14564},
-  url     = {https://arxiv.org/abs/2506.14564}, 
-  archivePrefix = {arXiv},
-  primaryClass  = {cs.DS},
-}
-```

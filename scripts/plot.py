@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import numpy as np
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
@@ -10,6 +11,7 @@ import pandas as pd
 import argparse as cli
 import os
 import re
+from pathlib import Path
 
 parser = cli.ArgumentParser()
 parser.add_argument("datadir")
@@ -132,8 +134,10 @@ extra_stats = {
 
 no_naive_times = {"Linear": [], "Plus": [], "Extra": []}
 
-for file in os.listdir(args.datadir):
-    out = parse_file(f"{args.datadir}/{file}")
+files = list(Path(args.datadir).glob("*.log"))
+print("Found", len(files), "files")
+for file in files:
+    out = parse_file(file)
 
     # Something went wrong here and the file does not include a full dataset
     if any(

@@ -1,6 +1,11 @@
 /target
 /data
+/output
 .stride
 /stride-logs
 runner
 Cargo.lock
+*.gr
+*.gr.bz2
+*.log
+alenex*.tar

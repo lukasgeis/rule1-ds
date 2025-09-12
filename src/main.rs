@@ -6,6 +6,7 @@ mod marker;
 mod radix;
 mod rule1;
 
+use bzip2::bufread::BzDecoder;
 use rand::SeedableRng;
 use rand_pcg::Pcg64Mcg;
 
@@ -17,6 +18,7 @@ use crate::{
 };
 
 use std::{
+    ffi::OsString,
     fs::File,
     io::{BufReader, Read, Write},
     path::PathBuf,
@@ -72,25 +74,36 @@ fn main() -> std::io::Result<()> {
     // Read Graph
 
     // Load into buffer to prevent external factors in measurement
-    let mut buffer = vec![];
-    BufReader::new(File::open(args.file)?).read_to_end(&mut buffer)?;
+    let org_graph = {
+        let mut buffer = vec![];
+        if args
+            .file
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case(OsString::from("bz2")))
+        {
+            BzDecoder::new(BufReader::new(File::open(args.file)?)).read_to_end(&mut buffer)?;
+        } else {
+            BufReader::new(File::open(args.file)?).read_to_end(&mut buffer)?;
+        }
 
-    let timer = Instant::now();
-    let org_graph = if args.girgs {
-        Graph::try_read_girgs(std::io::Cursor::new(buffer))?
-    } else {
-        Graph::try_read_pace(std::io::Cursor::new(buffer))?
+        let timer = Instant::now();
+        let org_graph = if args.girgs {
+            Graph::try_read_girgs(std::io::Cursor::new(buffer))?
+        } else {
+            Graph::try_read_pace(std::io::Cursor::new(buffer))?
+        };
+
+        let read_time = timer.elapsed().as_nanos();
+
+        writeln!(
+            stderr,
+            "Graph loaded n={:7} m={:8} in {:12}ns",
+            org_graph.len(),
+            org_graph.num_edges(),
+            read_time
+        )?;
+        org_graph
     };
-
-    let read_time = timer.elapsed().as_nanos();
-
-    writeln!(
-        stderr,
-        "Graph loaded n={:7} m={:8} in {:12}ns",
-        org_graph.len(),
-        org_graph.num_edges(),
-        read_time
-    )?;
 
     // Fix Singletons
 

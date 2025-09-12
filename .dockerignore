@@ -1,0 +1,6 @@
+target
+output
+input
+*.gr
+*.gr.bz2
+*.log
